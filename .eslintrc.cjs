@@ -24,6 +24,8 @@ module.exports = {
     },
   },
   rules: {
+    '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+    '@typescript-eslint/no-misused-promises': 'off',
     'react-refresh/only-export-components': [
       'warn',
       { allowConstantExport: true },
