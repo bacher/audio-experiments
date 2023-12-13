@@ -39,6 +39,8 @@ export async function init(
     imag: waveform.imag,
   });
 
+  console.log(track, wave);
+
   const gainNode = audioContext.createGain();
   gainNode.gain.value = 0.5;
 
@@ -124,6 +126,7 @@ export async function init(
         await audioElement.play();
       }
     },
+    // eslint-disable-next-line @typescript-eslint/require-await
     toggle: async (isPlay) => {
       if (isPlay === isPlaying) {
         return;

@@ -63,8 +63,8 @@ function drawFreq(
   const barWidth = (canvas.width - buffer.length) / buffer.length;
   let x = 0;
 
-  for (let i = 0; i < buffer.length; i++) {
-    const barHeight = buffer[i] / 255;
+  for (const byteHeight of buffer) {
+    const barHeight = byteHeight / 255;
 
     ctx.fillStyle = `rgb(${100 + barHeight * 128}, 50, 50)`;
     ctx.fillRect(x, canvas.height, barWidth, -barHeight * canvas.height);
