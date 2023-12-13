@@ -1,0 +1,16 @@
+.root {
+  display: flex;
+  width: 350px;
+}
+
+.title {
+  width: 100px;
+}
+
+.input {
+  flex-grow: 1;
+}
+
+.value {
+  width: 100px;
+}
