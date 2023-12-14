@@ -3,12 +3,14 @@ import { Routes, Route, Link } from 'react-router-dom';
 import { Main } from '../Main';
 import { Harmonics } from '../Harmonics';
 import { Harmonics2 } from '../Harmonics2';
+import { Harmonics3 } from '../Harmonics3';
 
 enum AppRoute {
   MENU = '/',
   MAIN = '/main',
   HARMONICS = '/harmonics',
   HARMONICS_2 = '/harmonics2',
+  HARMONICS_3 = '/harmonics3',
 }
 
 function Home() {
@@ -25,6 +27,9 @@ function Home() {
         <li>
           <Link to={AppRoute.HARMONICS_2}>Harmonics 2</Link>
         </li>
+        <li>
+          <Link to={AppRoute.HARMONICS_3}>Harmonics 3</Link>
+        </li>
       </ul>
     </div>
   );
@@ -37,6 +42,7 @@ export function App() {
       <Route path={AppRoute.MAIN} element={<Main />} />
       <Route path={AppRoute.HARMONICS} element={<Harmonics />} />
       <Route path={AppRoute.HARMONICS_2} element={<Harmonics2 />} />
+      <Route path={AppRoute.HARMONICS_3} element={<Harmonics3 />} />
     </Routes>
   );
 }
