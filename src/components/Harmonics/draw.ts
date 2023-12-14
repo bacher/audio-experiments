@@ -1,8 +1,7 @@
-import { Harmonic } from './types.ts';
-
 export function draw(
   ctx: CanvasRenderingContext2D,
-  harmonics: Harmonic[],
+  values: number[],
+  maxValue: number,
 ): void {
   const { width: CANVAS_WIDTH, height: CANVAS_HEIGHT } = ctx.canvas;
 
@@ -17,31 +16,6 @@ export function draw(
   ctx.lineTo(CANVAS_WIDTH, 0);
   ctx.strokeStyle = '#000';
   ctx.stroke();
-
-  const values = Array.from({ length: CANVAS_WIDTH }, () => 0);
-
-  // const scale = CANVAS_HEIGHT / 2;
-
-  let maxValue = 0;
-
-  for (let x = 0; x <= CANVAS_WIDTH; x += 1) {
-    const rad = (x / CANVAS_WIDTH) * 2 * Math.PI;
-    let value = 0;
-
-    for (const harmonic of harmonics) {
-      if (harmonic.amplify !== 0) {
-        const m = harmonic.index + 1;
-        value +=
-          harmonic.amplify * Math.sin(m * rad + harmonic.shift * 2 * Math.PI);
-      }
-    }
-
-    values[x] = value;
-
-    if (Math.abs(value) >= maxValue) {
-      maxValue = Math.abs(value);
-    }
-  }
 
   const scale = 0.9 * (CANVAS_HEIGHT / 2 / maxValue);
 

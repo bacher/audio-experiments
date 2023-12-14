@@ -13,11 +13,28 @@ import {
   loadHarmonicsFromLocalStorage,
   persistHarmonicsToLocalStorage,
 } from './persist.ts';
+import { playAudio, stopAudio } from './audio.ts';
+import { processHarmonics } from './processing.ts';
 
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 250;
 
-function useStateRef<T>(initFunc: () => T): MutableRefObject<T> {
+function useStateRef<T>(
+  initFunc: () => T,
+): [MutableRefObject<T>, (value: T) => void] {
+  const [value, setValue] = useState(initFunc);
+  const ref = useRef(value);
+
+  return [
+    ref,
+    (updatedValue) => {
+      ref.current = updatedValue;
+      setValue(updatedValue);
+    },
+  ];
+}
+
+function useLazyRef<T>(initFunc: () => T): MutableRefObject<T> {
   const [initialValue] = useState(initFunc);
   return useRef(initialValue);
 }
@@ -33,8 +50,9 @@ function useForceUpdate() {
 export function Harmonics() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasContextRef = useRef<CanvasRenderingContext2D | undefined>();
+  const [isPlayingRef, setIsPlaying] = useStateRef(() => false);
 
-  const harmonicsRef = useStateRef<Harmonic[]>(
+  const harmonicsRef = useLazyRef<Harmonic[]>(
     () =>
       loadHarmonicsFromLocalStorage() ?? [
         { amplify: 1, shift: 0, index: 0 },
@@ -46,12 +64,30 @@ export function Harmonics() {
       ],
   );
 
+  useEffect(() => {
+    if (isPlayingRef.current) {
+      updateCanvas();
+    } else {
+      void stopAudio();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlayingRef.current]);
+
   const forceUpdate = useForceUpdate();
 
   function updateCanvas() {
     const ctx = canvasContextRef.current!;
-    console.log('draw');
-    draw(ctx, harmonicsRef.current);
+
+    const { values, maxValue, area } = processHarmonics(
+      harmonicsRef.current,
+      CANVAS_WIDTH,
+    );
+
+    if (isPlayingRef.current) {
+      void playAudio(harmonicsRef.current, area);
+    }
+
+    draw(ctx, values, maxValue);
   }
 
   useEffect(() => {
@@ -59,23 +95,39 @@ export function Harmonics() {
       willReadFrequently: false,
     })!;
     updateCanvas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function onHarmonicUpdate() {
     forceUpdate();
+
     updateCanvas();
-    // TODO: Make lazy
-    persistHarmonicsToLocalStorage(harmonicsRef.current);
+
+    window.setTimeout(() => {
+      persistHarmonicsToLocalStorage(harmonicsRef.current);
+    }, 50);
   }
 
   return (
     <div className={styles.root}>
-      <canvas
-        ref={canvasRef}
-        className={styles.canvas}
-        width={CANVAS_WIDTH}
-        height={CANVAS_HEIGHT}
-      />
+      <div className={styles.topPanel}>
+        <canvas
+          ref={canvasRef}
+          className={styles.canvas}
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
+        />
+        <div>
+          <button
+            type="button"
+            onClick={() => {
+              setIsPlaying(!isPlayingRef.current);
+            }}
+          >
+            {isPlayingRef.current ? 'Stop' : 'Play'}
+          </button>
+        </div>
+      </div>
       <div className={styles.harmonics}>
         {harmonicsRef.current.map((harmonic, i) => (
           <div key={i} className={styles.ranges}>
