@@ -16,26 +16,73 @@ function calculateVolume(volume: number): number {
   return (0.3 * clamp(volume, 0, 3)) / 2;
 }
 
-function getHarmonicParams(harmonic: Harmonic) {
-  const frequency = 220 * (harmonic.index + 1);
-  const period = 1 / frequency;
-  const delayTime = period * harmonic.shift;
+export function generatePeriodicWaveExample(audioContext: AudioContext) {
+  const real = new Float32Array(2);
+  const imag = new Float32Array(2);
 
-  return {
-    frequency,
-    period,
-    delayTime,
-  };
+  real[0] = 0;
+  imag[0] = 0;
+  real[1] = 1;
+  imag[1] = 0;
+
+  return new PeriodicWave(audioContext, {
+    real,
+    imag,
+    disableNormalization: true,
+  });
 }
 
-export type HarmonicNode = {
-  osc: OscillatorNode;
-  delay: DelayNode;
-  gain: GainNode;
-};
+function generatePeriodicWave(
+  audioContext: AudioContext,
+  harmonics: Harmonic[],
+) {
+  const real = new Float32Array(harmonics.length + 1);
+  const imag = new Float32Array(harmonics.length + 1);
+
+  real[0] = 0;
+  imag[0] = 0;
+
+  for (const harmonic of harmonics) {
+    const { index, amplify, shift } = harmonic;
+    // const { frequency, delayTime } = getHarmonicParams(harmonic);
+
+    let r;
+    let i;
+
+    // Graph Calculator
+    // https://www.desmos.com/calculator/iq9nfpi76e
+
+    if (shift < 0.25) {
+      const interpolation = shift * 4;
+      r = amplify * Math.sqrt(1 - interpolation);
+      i = amplify * Math.sqrt(interpolation);
+    } else if (shift < 0.5) {
+      const interpolation = 1 - (shift - 0.25) * 4;
+      r = amplify * Math.sqrt(1 - interpolation) * -1;
+      i = amplify * Math.sqrt(interpolation);
+    } else if (shift < 0.75) {
+      const interpolation = (shift - 0.5) * 4;
+      r = amplify * Math.sqrt(1 - interpolation) * -1;
+      i = amplify * Math.sqrt(interpolation) * -1;
+    } else {
+      const interpolation = 1 - (shift - 0.75) * 4;
+      r = amplify * Math.sqrt(1 - interpolation);
+      i = amplify * Math.sqrt(interpolation) * -1;
+    }
+
+    real[index + 1] = r;
+    imag[index + 1] = i;
+  }
+
+  return new PeriodicWave(audioContext, {
+    real,
+    imag,
+    // disableNormalization: true,
+  });
+}
 
 export type SetupResults = {
-  harmonicsNodes: HarmonicNode[];
+  osc: OscillatorNode;
   gain: GainNode;
 };
 
@@ -58,59 +105,36 @@ export function setupAudio(
 
   finalGain.connect(audioContext.destination);
 
-  const harmonicsNodes = harmonics
-    // .filter((harmonic) => harmonic.amplify > 0)
-    .map((harmonic) => {
-      const { frequency, delayTime } = getHarmonicParams(harmonic);
+  const periodicWave = generatePeriodicWave(audioContext, harmonics);
 
-      const osc = new OscillatorNode(audioContext, {
-        frequency,
-        type: 'sine',
-      });
+  const osc = new OscillatorNode(audioContext, {
+    frequency: 220,
+    type: 'custom',
+    periodicWave,
+  });
 
-      const gain = new GainNode(audioContext, {
-        gain: harmonic.amplify,
-      });
+  osc.connect(finalGain);
 
-      const delay = new DelayNode(audioContext, {
-        delayTime: delayTime,
-      });
-
-      osc.connect(delay);
-      delay.connect(gain);
-      gain.connect(finalGain);
-
-      return {
-        osc,
-        delay,
-        gain,
-      };
-    });
-
-  const currentTime = audioContext.currentTime + 0.005;
-  for (const { osc } of harmonicsNodes) {
-    osc.start(currentTime);
-  }
+  osc.start();
 
   return {
-    harmonicsNodes,
+    osc,
     gain: finalGain,
   };
 }
 
 export function applyAudioSettings(
-  { harmonicsNodes, gain }: SetupResults,
+  { osc, gain }: SetupResults,
   harmonics: Harmonic[],
   volume: number,
 ): void {
-  for (let i = 0; i < harmonicsNodes.length; i += 1) {
-    const { delay, gain } = harmonicsNodes[i];
-    const harmonic = harmonics[i];
-    const { delayTime } = getHarmonicParams(harmonic);
-
-    delay.delayTime.value = delayTime;
-    gain.gain.value = harmonic.amplify;
+  if (!currentAudioContext) {
+    return;
   }
+
+  const periodicWave = generatePeriodicWave(currentAudioContext, harmonics);
+
+  osc.setPeriodicWave(periodicWave);
 
   gain.gain.value = calculateVolume(volume);
 }
