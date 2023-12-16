@@ -5,6 +5,7 @@ import { Harmonics } from '../Harmonics';
 import { Harmonics2 } from '../Harmonics2';
 import { Harmonics3 } from '../Harmonics3';
 import { Harmonics4 } from '../Harmonics4';
+import { Harmonics5 } from '../Harmonics5';
 
 enum AppRoute {
   MENU = '/',
@@ -13,6 +14,7 @@ enum AppRoute {
   HARMONICS_2 = '/harmonics2',
   HARMONICS_3 = '/harmonics3',
   HARMONICS_4 = '/harmonics4',
+  HARMONICS_5 = '/harmonics5',
 }
 
 function Home() {
@@ -35,6 +37,9 @@ function Home() {
         <li>
           <Link to={AppRoute.HARMONICS_4}>Harmonics 4</Link>
         </li>
+        <li>
+          <Link to={AppRoute.HARMONICS_5}>Harmonics 5</Link>
+        </li>
       </ul>
     </div>
   );
@@ -49,6 +54,7 @@ export function App() {
       <Route path={AppRoute.HARMONICS_2} element={<Harmonics2 />} />
       <Route path={AppRoute.HARMONICS_3} element={<Harmonics3 />} />
       <Route path={AppRoute.HARMONICS_4} element={<Harmonics4 />} />
+      <Route path={AppRoute.HARMONICS_5} element={<Harmonics5 />} />
     </Routes>
   );
 }
