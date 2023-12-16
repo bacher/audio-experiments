@@ -1,34 +1,44 @@
 import { useEffect, useRef } from 'react';
 
-import { useLazyRef, useForceUpdate, useStateRef } from '../../hooks';
-import styles from './Harmonics.module.css';
+import styles from './Harmonics4.module.css';
 import { draw } from './draw.ts';
 import type { Harmonic } from './types.ts';
 import {
   loadHarmonicsFromLocalStorage,
   persistHarmonicsToLocalStorage,
 } from './persist.ts';
-import { playAudio, stopAudio } from './audio.ts';
+import {
+  applyAudioSettings,
+  setupAudio,
+  SetupResults,
+  stopAudio,
+} from './audio.ts';
 import { processHarmonics } from './processing.ts';
+import { useLazyRef, useForceUpdate, useStateRef } from '../../hooks';
 
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 250;
 
-export function Harmonics() {
+function getDefaultHarmonics() {
+  return [
+    { amplify: 1, shift: 0, index: 0 },
+    ...Array.from({ length: 15 }, (_, index) => ({
+      amplify: 0,
+      shift: 0,
+      index: index + 1,
+    })),
+  ];
+}
+
+export function Harmonics4() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasContextRef = useRef<CanvasRenderingContext2D | undefined>();
   const [isPlayingRef, setIsPlaying] = useStateRef(() => false);
 
+  const audioRef = useRef<SetupResults | undefined>();
+
   const harmonicsRef = useLazyRef<Harmonic[]>(
-    () =>
-      loadHarmonicsFromLocalStorage() ?? [
-        { amplify: 1, shift: 0, index: 0 },
-        ...Array.from({ length: 15 }, (_, index) => ({
-          amplify: 0,
-          shift: 0,
-          index: index + 1,
-        })),
-      ],
+    () => loadHarmonicsFromLocalStorage() ?? getDefaultHarmonics(),
   );
 
   useEffect(() => {
@@ -45,16 +55,16 @@ export function Harmonics() {
   function updateCanvas() {
     const ctx = canvasContextRef.current!;
 
-    const { values, maxValue, area } = processHarmonics(
+    const { values, maxLevel, avgLevel } = processHarmonics(
       harmonicsRef.current,
       CANVAS_WIDTH,
     );
 
-    if (isPlayingRef.current) {
-      void playAudio(harmonicsRef.current, area);
+    if (isPlayingRef.current && audioRef.current) {
+      applyAudioSettings(audioRef.current, harmonicsRef.current, 1 / avgLevel);
     }
 
-    draw(ctx, values, maxValue);
+    draw(ctx, values, maxLevel);
   }
 
   useEffect(() => {
@@ -67,7 +77,6 @@ export function Harmonics() {
 
   function onHarmonicUpdate() {
     forceUpdate();
-
     updateCanvas();
 
     window.setTimeout(() => {
@@ -84,14 +93,38 @@ export function Harmonics() {
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
         />
-        <div>
+        <div className={styles.actions}>
           <button
             type="button"
             onClick={() => {
+              if (!audioRef.current) {
+                audioRef.current = setupAudio(harmonicsRef.current, 0);
+              }
               setIsPlaying(!isPlayingRef.current);
             }}
           >
             {isPlayingRef.current ? 'Stop' : 'Play'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              harmonicsRef.current = getDefaultHarmonics();
+              onHarmonicUpdate();
+            }}
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              harmonicsRef.current = getDefaultHarmonics();
+              for (let i = 0; i < 16; i += 2) {
+                harmonicsRef.current[i].amplify = 1 / (i + 1);
+              }
+              onHarmonicUpdate();
+            }}
+          >
+            Set Square
           </button>
         </div>
       </div>

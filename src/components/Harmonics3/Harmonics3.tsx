@@ -1,11 +1,6 @@
-import {
-  MutableRefObject,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useEffect, useRef } from 'react';
 
+import { useLazyRef, useForceUpdate, useStateRef } from '../../hooks';
 import styles from './Harmonics3.module.css';
 import { draw } from './draw.ts';
 import type { Harmonic } from './types.ts';
@@ -23,34 +18,6 @@ import { processHarmonics } from './processing.ts';
 
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 250;
-
-function useStateRef<T>(
-  initFunc: () => T,
-): [MutableRefObject<T>, (value: T) => void] {
-  const [value, setValue] = useState(initFunc);
-  const ref = useRef(value);
-
-  return [
-    ref,
-    (updatedValue) => {
-      ref.current = updatedValue;
-      setValue(updatedValue);
-    },
-  ];
-}
-
-function useLazyRef<T>(initFunc: () => T): MutableRefObject<T> {
-  const [initialValue] = useState(initFunc);
-  return useRef(initialValue);
-}
-
-function useForceUpdate() {
-  const [, setState] = useState(0);
-
-  return useCallback(() => {
-    setState((state) => state + 1);
-  }, []);
-}
 
 function getDefaultHarmonics() {
   return [
