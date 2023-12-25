@@ -1,4 +1,4 @@
-import { Fragment, MouseEvent, useRef } from 'react';
+import { Fragment, MouseEvent, useEffect, useRef } from 'react';
 import cn from 'classnames';
 
 import styles from './Octaves.module.css';
@@ -32,6 +32,10 @@ const OCTAVES = [
 export function Octaves() {
   const audioRef = useRef<AudioResults | undefined>();
 
+  useEffect(() => {
+    printDeltas();
+  }, []);
+
   function onCellMouseEnter(event: MouseEvent, frequency: number): void {
     if (audioRef.current) {
       audioRef.current.osc.frequency.value = frequency;
@@ -57,7 +61,6 @@ export function Octaves() {
       }}
       onMouseLeave={() => {
         audioRef.current?.osc.stop();
-        console.log('STOP');
       }}
       onClick={() => {
         audioRef.current = setupAudio();
@@ -108,5 +111,3 @@ export function Octaves() {
     </div>
   );
 }
-
-printDeltas();

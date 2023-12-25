@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useForceUpdate } from '../../hooks';
 
 import { KeyboardLayerType } from './types.ts';
 
@@ -13,12 +12,16 @@ const KEYBOARD_ALIASES = new Map<KeyboardLayerType, string[]>([
   [KeyboardLayerType.ZXC, transformLettersIntoCodes('ZXCVBNM<>?')],
 ]);
 
-export function usePressedKeys() {
-  const forceUpdate = useForceUpdate();
+export type PressedKeys = Map<KeyboardLayerType, Set<number>>;
 
-  const [pressedKeys] = useState(
+export function usePressedKeys({
+  onChange,
+}: {
+  onChange: () => void;
+}): PressedKeys {
+  const [pressedKeys] = useState<PressedKeys>(
     () =>
-      new Map<KeyboardLayerType, Set<number>>([
+      new Map([
         [KeyboardLayerType.QWE, new Set()],
         [KeyboardLayerType.ASD, new Set()],
         [KeyboardLayerType.ZXC, new Set()],
@@ -31,7 +34,7 @@ export function usePressedKeys() {
         const index = keys.indexOf(event.code);
         if (index !== -1) {
           pressedKeys.get(keyboard)!.add(index);
-          forceUpdate();
+          onChange();
           return;
         }
       }
@@ -42,7 +45,7 @@ export function usePressedKeys() {
         const index = keys.indexOf(event.code);
         if (index !== -1) {
           pressedKeys.get(keyboard)!.delete(index);
-          forceUpdate();
+          onChange();
           return;
         }
       }

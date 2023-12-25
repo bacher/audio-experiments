@@ -3,10 +3,18 @@
   grid-template-columns: repeat(9, 1fr);
 }
 
-.activeCell {
+.cell_active {
   background: #6ab9ff;
 }
 
 .highlight {
   background: lightgreen;
+}
+
+.select_active {
+  background: #bedfff;
+}
+
+.settingsOption {
+  user-select: none;
 }

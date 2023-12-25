@@ -1,12 +1,13 @@
-import { Fragment, MouseEvent, useRef, useState } from 'react';
+import { Fragment, useRef } from 'react';
 import cn from 'classnames';
 
 import { useForceUpdate } from '../../hooks';
 import styles from './Octaves2.module.css';
-import { printDeltas } from './reference.ts';
-import { AudioResults, setupAudio } from './audio.ts';
+import { AudioResults, OscNodeEntity, setupAudio } from './audio.ts';
 import { KeyboardLayerType } from './types.ts';
-import { usePressedKeys } from './logic.ts';
+import { PressedKeys, usePressedKeys } from './usePressedKeys.ts';
+import { usePersistMap } from '../../hooks/usePersistMap.ts';
+import { usePersist } from '../../hooks/usePersist.ts';
 
 const START_FREQUENCY = 16.351875;
 
@@ -32,101 +33,150 @@ const OCTAVES = [
   'Пятая октава',
 ];
 
+export type KeyboardBindings = Map<number, KeyboardLayerType>;
+
+export type Settings = {
+  showHertz: boolean;
+};
+
 export function Octaves2() {
   const forceUpdate = useForceUpdate();
-  const [keyboardBindings] = useState(
-    () => new Map<number, KeyboardLayerType>(),
-  );
+
+  const [keyboardBindings, onKeyboardBindingsUpdated] =
+    usePersistMap<KeyboardBindings>('audio_keyboard_bindings');
+
+  const [settings, onSettingsUpdated] = usePersist<Settings>({
+    persistingKey: 'audio_settings',
+    default: () => ({ showHertz: true }),
+  });
+
   const audioRef = useRef<AudioResults | undefined>();
 
-  const pressedKeys = usePressedKeys();
+  const pressedKeys = usePressedKeys({
+    onChange: () => {
+      safeInit();
+      applyChangesLocal();
+      forceUpdate();
+    },
+  });
 
-  function onCellMouseEnter(event: MouseEvent, frequency: number): void {
+  function applyChangesLocal() {
     if (audioRef.current) {
-      audioRef.current.osc.frequency.value = frequency;
-      audioRef.current.gain.gain.value = Math.min(1, (3 * 20) / frequency);
+      applyChanges(audioRef.current, pressedKeys, keyboardBindings);
     }
-
-    document.querySelectorAll(styles.activeCell).forEach((element) => {
-      element.classList.remove(styles.activeCell);
-    });
-
-    (event.target as HTMLDivElement).classList.add(styles.activeCell);
   }
 
-  function onCellMouseLeave(event: MouseEvent): void {
-    (event.target as HTMLDivElement).classList.remove(styles.activeCell);
+  function safeInit() {
+    if (!audioRef.current) {
+      audioRef.current = setupAudio();
+    }
   }
 
   return (
-    <div
-      className={styles.grid}
-      onMouseEnter={() => {
-        audioRef.current?.osc.start();
-      }}
-      onMouseLeave={() => {
-        audioRef.current?.osc.stop();
-        console.log('STOP');
-      }}
-      onClick={() => {
-        audioRef.current = setupAudio();
-      }}
-    >
-      <div>Octave name\Level</div>
-      {NOTES.map(({ name, en }, index) => (
-        <div key={index}>
-          Level {index + 1}
-          <br />
-          {name}/{en}
-        </div>
-      ))}
-      <div>Keyboard</div>
-      {OCTAVES.map((octaveName, octaveIndex) => {
-        const levelStart = START_FREQUENCY * 2 ** octaveIndex;
+    <div>
+      <div className={styles.grid} onClick={safeInit}>
+        <div>Octave name\Level</div>
+        {NOTES.map(({ name, en }, index) => (
+          <div key={index}>
+            Level {index + 1}
+            <br />
+            {name}/{en}
+          </div>
+        ))}
+        <div>Keyboard</div>
+        {OCTAVES.map((octaveName, octaveIndex) => {
+          const levelStart = START_FREQUENCY * 2 ** octaveIndex;
 
-        const isHighLight = Math.floor(OCTAVES.length / octaveIndex) === 2;
-        const className = cn({
-          [styles.highlight]: isHighLight,
-        });
+          const isHighLight = Math.floor(OCTAVES.length / octaveIndex) === 2;
+          const className = cn({
+            [styles.highlight]: isHighLight,
+          });
 
-        return (
-          <Fragment key={octaveName}>
-            <div className={className}>{octaveName}</div>
-            {NOTES.map(({ level }, index) => {
-              // const step = levelStart / NOTES.length;
-              // const frequency = levelStart + step * index;
-              const frequency = levelStart * level;
+          return (
+            <Fragment key={octaveName}>
+              <div className={className}>{octaveName}</div>
+              {NOTES.map(({ level }, index) => {
+                // const step = levelStart / NOTES.length;
+                // const frequency = levelStart + step * index;
+                const frequency = levelStart * level;
 
-              return (
-                <div
-                  key={index}
-                  className={className}
-                  onMouseEnter={(event) => {
-                    onCellMouseEnter(event, frequency);
-                  }}
-                  onMouseLeave={onCellMouseLeave}
-                >
-                  {frequency
-                    .toFixed(frequency < 500 ? 1 : 0)
-                    .replace(/\.0$/, '')}
-                </div>
-              );
-            })}
-            <KeyboardBinding
-              value={keyboardBindings.get(octaveIndex)}
-              onChange={(keyboardBindingType) => {
-                if (keyboardBindingType) {
-                  removeBinding(keyboardBindings, keyboardBindingType);
-                  keyboardBindings.set(octaveIndex, keyboardBindingType);
-                } else {
-                  keyboardBindings.delete(octaveIndex);
+                let isActive = false;
+
+                const keyboardLayerType = keyboardBindings.get(octaveIndex);
+                if (keyboardLayerType) {
+                  isActive =
+                    pressedKeys.get(keyboardLayerType)?.has(index) ?? false;
                 }
-                forceUpdate();
-              }}
-            />
-          </Fragment>
-        );
-      })}
+
+                return (
+                  <div
+                    key={index}
+                    className={cn({
+                      [styles.cell_active]: isActive,
+                    })}
+                  >
+                    {NOTES[index].en}
+                    {octaveIndex}
+                    {settings.showHertz
+                      ? ` ${frequency
+                          .toFixed(frequency < 500 ? 1 : 0)
+                          .replace(/\.0$/, '')}`
+                      : ''}
+                  </div>
+                );
+              })}
+              <KeyboardBinding
+                value={keyboardBindings.get(octaveIndex)}
+                onChange={(keyboardBindingType) => {
+                  if (keyboardBindingType) {
+                    removeBinding(keyboardBindings, keyboardBindingType);
+                    keyboardBindings.set(octaveIndex, keyboardBindingType);
+                  } else {
+                    keyboardBindings.delete(octaveIndex);
+                  }
+                  applyChangesLocal();
+                  forceUpdate();
+                  onKeyboardBindingsUpdated();
+                }}
+              />
+            </Fragment>
+          );
+        })}
+      </div>
+      <Settings
+        settings={settings}
+        onUpdate={(updatedSettings) => {
+          Object.assign(settings, updatedSettings);
+          onSettingsUpdated();
+          forceUpdate();
+        }}
+      />
+    </div>
+  );
+}
+
+function Settings({
+  settings,
+  onUpdate,
+}: {
+  settings: Settings;
+  onUpdate: (settings: Settings) => void;
+}) {
+  return (
+    <div>
+      <label className={styles.settingsOption}>
+        <input
+          type="checkbox"
+          checked={settings.showHertz}
+          onChange={(event) => {
+            onUpdate({
+              ...settings,
+              showHertz: event.target.checked,
+            });
+          }}
+        />{' '}
+        Show hertz
+      </label>
     </div>
   );
 }
@@ -152,6 +202,9 @@ const NONE_VALUE = '_none';
 function KeyboardBinding({ value, onChange }: KeyboardBindingProps) {
   return (
     <select
+      className={cn({
+        [styles.select_active]: Boolean(value),
+      })}
       value={value ?? NONE_VALUE}
       onChange={(event) => {
         const updatedValue = event.target.value;
@@ -171,4 +224,80 @@ function KeyboardBinding({ value, onChange }: KeyboardBindingProps) {
   );
 }
 
-printDeltas();
+function applyChanges(
+  { oscNodes }: AudioResults,
+  pressedKeys: PressedKeys,
+  keyboardBindings: KeyboardBindings,
+) {
+  const activeFrequencies = new Set<number>();
+
+  for (const [octaveIndex, keyboardLayerType] of keyboardBindings) {
+    const layoutKeys = pressedKeys.get(keyboardLayerType);
+
+    if (layoutKeys) {
+      const levelStart = START_FREQUENCY * 2 ** octaveIndex;
+
+      for (const noteIndex of layoutKeys) {
+        const note = NOTES[noteIndex];
+
+        if (note) {
+          const frequency = levelStart * note.level;
+          activeFrequencies.add(frequency);
+        }
+      }
+    }
+  }
+
+  syncOscNodes(oscNodes, activeFrequencies);
+}
+
+function syncOscNodes(
+  nodes: OscNodeEntity[],
+  activeFrequencies: Set<number>,
+): void {
+  const restFrequencies = new Set(activeFrequencies);
+
+  for (const node of nodes) {
+    const alreadyHas = restFrequencies.has(node.frequency);
+
+    if (alreadyHas) {
+      if (!node.isActive) {
+        node.isActive = true;
+        node.gain.gain.value = getVolumeBasedOnFrequency(node.frequency);
+      }
+
+      restFrequencies.delete(node.frequency);
+    } else {
+      if (node.isActive) {
+        node.isActive = false;
+        node.gain.gain.value = 0;
+      }
+    }
+  }
+
+  if (restFrequencies.size) {
+    const vacantNodes = nodes.filter((node) => !node.isActive);
+
+    for (const frequency of restFrequencies) {
+      const node = vacantNodes.shift();
+
+      if (!node) {
+        console.warn(
+          `Not enough nodes, all ${nodes.length} are already in use.`,
+        );
+        break;
+      }
+
+      console.log('SET FREQ =', frequency);
+
+      node.frequency = frequency;
+      node.osc.frequency.value = frequency;
+      node.gain.gain.value = getVolumeBasedOnFrequency(frequency);
+      node.isActive = true;
+    }
+  }
+}
+
+function getVolumeBasedOnFrequency(frequency: number) {
+  return Math.min(1, (3 * 20) / frequency);
+}
