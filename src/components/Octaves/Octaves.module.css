@@ -1,0 +1,12 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+}
+
+.activeCell {
+  background: #6ab9ff;
+}
+
+.highlight {
+  background: lightgreen;
+}
