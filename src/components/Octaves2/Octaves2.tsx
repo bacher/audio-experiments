@@ -1,23 +1,45 @@
-import { Fragment, useRef } from 'react';
+import { CSSProperties, Fragment, useRef } from 'react';
 import cn from 'classnames';
 
 import { useForceUpdate } from '../../hooks';
-import styles from './Octaves2.module.css';
-import { AudioResults, OscNodeEntity, setupAudio } from './audio.ts';
-import { KeyboardLayerType } from './types.ts';
-import { PressedKeys, usePressedKeys } from './usePressedKeys.ts';
 import { usePersistMap } from '../../hooks/usePersistMap.ts';
 import { usePersist } from '../../hooks/usePersist.ts';
 
+import { KeyboardLayerType } from './types.ts';
+import { AudioResults, OscNodeEntity, setupAudio } from './audio.ts';
+import { PressedKeys, usePressedKeys } from './usePressedKeys.ts';
+import styles from './Octaves2.module.css';
+
 const START_FREQUENCY = 16.351875;
 
-const NOTES = [
+type Note = {
+  name: string;
+  en: string;
+  level: number;
+};
+
+const NOTES: Note[] = [
   { name: 'До', en: 'C', level: 1 },
   { name: 'Ре', en: 'D', level: 1.122424798379391 },
   { name: 'Ми', en: 'E', level: 1.2599090318388564 },
   { name: 'Фа', en: 'F', level: 1.334823988074762 },
   { name: 'Соль', en: 'G', level: 1.4982991247181134 },
   { name: 'Ля', en: 'A', level: 1.6817643236631885 },
+  { name: 'Си', en: 'B', level: 1.8877040094790354 },
+];
+
+const NOTES_FULL: Note[] = [
+  { name: 'До', en: 'C', level: 1 },
+  { name: 'До#', en: 'C#', level: 1.0594422700587085 },
+  { name: 'Ре', en: 'D', level: 1.122424798379391 },
+  { name: 'Ре#', en: 'D#', level: 1.1891511741682974 },
+  { name: 'Ми', en: 'E', level: 1.2599090318388564 },
+  { name: 'Фа', en: 'F', level: 1.334823988074762 },
+  { name: 'Фа#', en: 'F#', level: 1.4142000978473581 },
+  { name: 'Соль', en: 'G', level: 1.4982991247181134 },
+  { name: 'Соль#', en: 'G#', level: 1.5873899217221135 },
+  { name: 'Ля', en: 'A', level: 1.6817643236631885 },
+  { name: 'Ля#', en: 'A#', level: 1.7817392367906066 },
   { name: 'Си', en: 'B', level: 1.8877040094790354 },
 ];
 
@@ -36,7 +58,17 @@ const OCTAVES = [
 export type KeyboardBindings = Map<number, KeyboardLayerType>;
 
 export type Settings = {
+  showNames: boolean;
   showHertz: boolean;
+  halfTones: boolean;
+  showStep: boolean;
+};
+
+const SETTINGS = {
+  showNames: 'Show names',
+  showHertz: 'Show hertz',
+  halfTones: 'Half tones',
+  showStep: 'Show step',
 };
 
 export function Octaves2() {
@@ -47,8 +79,15 @@ export function Octaves2() {
 
   const [settings, onSettingsUpdated] = usePersist<Settings>({
     persistingKey: 'audio_settings',
-    default: () => ({ showHertz: true }),
+    default: () => ({
+      showNames: true,
+      showHertz: false,
+      halfTones: false,
+      showStep: false,
+    }),
   });
+
+  const notes = settings.halfTones ? NOTES_FULL : NOTES;
 
   const audioRef = useRef<AudioResults | undefined>();
 
@@ -62,7 +101,7 @@ export function Octaves2() {
 
   function applyChangesLocal() {
     if (audioRef.current) {
-      applyChanges(audioRef.current, pressedKeys, keyboardBindings);
+      applyChanges(audioRef.current, notes, pressedKeys, keyboardBindings);
     }
   }
 
@@ -74,10 +113,18 @@ export function Octaves2() {
 
   return (
     <div>
-      <div className={styles.grid} onClick={safeInit}>
+      <div
+        className={styles.grid}
+        style={
+          {
+            '--notes-count': notes.length,
+          } as CSSProperties
+        }
+        onClick={safeInit}
+      >
         <div>Octave name\Level</div>
-        {NOTES.map(({ name, en }, index) => (
-          <div key={index}>
+        {notes.map(({ name, en }, index) => (
+          <div key={index} className={styles.columnName}>
             Level {index + 1}
             <br />
             {name}/{en}
@@ -88,17 +135,27 @@ export function Octaves2() {
           const levelStart = START_FREQUENCY * 2 ** octaveIndex;
 
           const isHighLight = Math.floor(OCTAVES.length / octaveIndex) === 2;
-          const className = cn({
+          const className = cn(styles.octaveName, {
             [styles.highlight]: isHighLight,
           });
 
           return (
             <Fragment key={octaveName}>
               <div className={className}>{octaveName}</div>
-              {NOTES.map(({ level }, index) => {
+              {notes.map(({ level }, index) => {
                 // const step = levelStart / NOTES.length;
                 // const frequency = levelStart + step * index;
                 const frequency = levelStart * level;
+                let plus = 0;
+
+                if (settings.showStep) {
+                  if (index > 0) {
+                    plus = (level / notes[index - 1].level - 1) * 100;
+                  } else if (octaveIndex > 0) {
+                    plus =
+                      (level / (notes[notes.length - 1].level / 2) - 1) * 100;
+                  }
+                }
 
                 let isActive = false;
 
@@ -115,13 +172,29 @@ export function Octaves2() {
                       [styles.cell_active]: isActive,
                     })}
                   >
-                    {NOTES[index].en}
-                    {octaveIndex}
-                    {settings.showHertz
-                      ? ` ${frequency
+                    {settings.showNames && (
+                      <>
+                        {notes[index].en}
+                        {octaveIndex}
+                      </>
+                    )}
+
+                    {settings.showHertz && (
+                      <>
+                        {' '}
+                        {frequency
                           .toFixed(frequency < 500 ? 1 : 0)
-                          .replace(/\.0$/, '')}`
-                      : ''}
+                          .replace(/\.0$/, '')}
+                        {plus && (
+                          <>
+                            {' '}
+                            <span className={styles.step}>
+                              (+{plus.toFixed(1)}%)
+                            </span>
+                          </>
+                        )}
+                      </>
+                    )}
                   </div>
                 );
               })}
@@ -164,19 +237,23 @@ function Settings({
 }) {
   return (
     <div>
-      <label className={styles.settingsOption}>
-        <input
-          type="checkbox"
-          checked={settings.showHertz}
-          onChange={(event) => {
-            onUpdate({
-              ...settings,
-              showHertz: event.target.checked,
-            });
-          }}
-        />{' '}
-        Show hertz
-      </label>
+      {(Object.entries(SETTINGS) as [key: keyof Settings, string][]).map(
+        ([key, name]) => (
+          <label key={key} className={styles.settingsOption}>
+            <input
+              type="checkbox"
+              checked={settings[key] ?? false}
+              onChange={(event) => {
+                onUpdate({
+                  ...settings,
+                  [key]: event.target.checked,
+                });
+              }}
+            />{' '}
+            {name}
+          </label>
+        ),
+      )}
     </div>
   );
 }
@@ -226,6 +303,7 @@ function KeyboardBinding({ value, onChange }: KeyboardBindingProps) {
 
 function applyChanges(
   { oscNodes }: AudioResults,
+  notes: Note[],
   pressedKeys: PressedKeys,
   keyboardBindings: KeyboardBindings,
 ) {
@@ -238,7 +316,7 @@ function applyChanges(
       const levelStart = START_FREQUENCY * 2 ** octaveIndex;
 
       for (const noteIndex of layoutKeys) {
-        const note = NOTES[noteIndex];
+        const note = notes[noteIndex];
 
         if (note) {
           const frequency = levelStart * note.level;

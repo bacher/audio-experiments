@@ -7,9 +7,24 @@ function transformLettersIntoCodes(letters: string): string[] {
 }
 
 const KEYBOARD_ALIASES = new Map<KeyboardLayerType, string[]>([
-  [KeyboardLayerType.QWE, transformLettersIntoCodes('QWERTYUIOP')],
-  [KeyboardLayerType.ASD, transformLettersIntoCodes('ASDFGHJKL:')],
-  [KeyboardLayerType.ZXC, transformLettersIntoCodes('ZXCVBNM<>?')],
+  [
+    KeyboardLayerType.QWE,
+    [...transformLettersIntoCodes('QWERTYUIOP'), 'BracketLeft', 'BracketRight'],
+  ],
+  [
+    KeyboardLayerType.ASD,
+    [...transformLettersIntoCodes('ASDFGHJKL'), 'Semicolon', 'Quote', 'Enter'],
+  ],
+  [
+    KeyboardLayerType.ZXC,
+    [
+      ...transformLettersIntoCodes('ZXCVBNM'),
+      'Comma',
+      'Period',
+      'Slash',
+      'ShiftRight',
+    ],
+  ],
 ]);
 
 export type PressedKeys = Map<KeyboardLayerType, Set<number>>;
@@ -30,6 +45,8 @@ export function usePressedKeys({
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
+      console.log(event.code);
+
       for (const [keyboard, keys] of KEYBOARD_ALIASES) {
         const index = keys.indexOf(event.code);
         if (index !== -1) {
