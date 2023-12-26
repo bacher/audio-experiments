@@ -1,3 +1,5 @@
+import { WaveFormType } from './types.ts';
+
 let currentAudioContext: AudioContext | undefined;
 
 export type AudioResults = {
@@ -15,7 +17,13 @@ export type OscNodeEntity = {
 const MAX_OSC_COUNT = 20;
 const BASE_FREQUENCY = 440;
 
-export function setupAudio(): AudioResults {
+export function setupAudio({
+  waveFormType,
+  volume,
+}: {
+  waveFormType: WaveFormType;
+  volume: number;
+}): AudioResults {
   if (currentAudioContext) {
     void currentAudioContext.close();
   }
@@ -24,13 +32,16 @@ export function setupAudio(): AudioResults {
   currentAudioContext = audioContext;
 
   const finalGain = new GainNode(audioContext, {
-    gain: 1,
+    gain: volume,
   });
 
   const oscNodes: OscNodeEntity[] = [];
 
   for (let i = 0; i < MAX_OSC_COUNT; i += 1) {
-    const osc = new OscillatorNode(audioContext, { frequency: BASE_FREQUENCY });
+    const osc = new OscillatorNode(audioContext, {
+      frequency: BASE_FREQUENCY,
+      type: waveFormType,
+    });
     const gain = new GainNode(audioContext, {
       gain: 0,
     });

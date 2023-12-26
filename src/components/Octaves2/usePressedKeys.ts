@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { KeyboardLayerType } from './types.ts';
 
@@ -34,6 +34,9 @@ export function usePressedKeys({
 }: {
   onChange: () => void;
 }): PressedKeys {
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
   const [pressedKeys] = useState<PressedKeys>(
     () =>
       new Map([
@@ -45,13 +48,11 @@ export function usePressedKeys({
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      console.log(event.code);
-
       for (const [keyboard, keys] of KEYBOARD_ALIASES) {
         const index = keys.indexOf(event.code);
         if (index !== -1) {
           pressedKeys.get(keyboard)!.add(index);
-          onChange();
+          onChangeRef.current();
           return;
         }
       }
@@ -62,7 +63,7 @@ export function usePressedKeys({
         const index = keys.indexOf(event.code);
         if (index !== -1) {
           pressedKeys.get(keyboard)!.delete(index);
-          onChange();
+          onChangeRef.current();
           return;
         }
       }
@@ -75,7 +76,7 @@ export function usePressedKeys({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, []);
+  }, [pressedKeys]);
 
   return pressedKeys;
 }

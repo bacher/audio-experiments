@@ -20,7 +20,6 @@ export function usePersist<T>({
       try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const json = JSON.parse(rawData);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         return deserialize(json);
       } catch (error) {
         console.warn(error);

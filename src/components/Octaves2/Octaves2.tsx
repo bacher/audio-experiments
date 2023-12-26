@@ -5,7 +5,12 @@ import { useForceUpdate } from '../../hooks';
 import { usePersistMap } from '../../hooks/usePersistMap.ts';
 import { usePersist } from '../../hooks/usePersist.ts';
 
-import { defaultSettings, KeyboardLayerType, Settings } from './types.ts';
+import {
+  defaultSettings,
+  KeyboardLayerType,
+  Settings,
+  volumeWaveFormMapper,
+} from './types.ts';
 import { AudioResults, OscNodeEntity, setupAudio } from './audio.ts';
 import { PressedKeys, usePressedKeys } from './usePressedKeys.ts';
 import styles from './Octaves2.module.css';
@@ -89,7 +94,12 @@ export function Octaves2() {
 
   function safeInit() {
     if (!audioRef.current) {
-      audioRef.current = setupAudio();
+      const waveFormType = settings.waveFormType ?? 'sine';
+
+      audioRef.current = setupAudio({
+        waveFormType,
+        volume: volumeWaveFormMapper[waveFormType],
+      });
     }
   }
 

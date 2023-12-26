@@ -1,4 +1,4 @@
-import { Settings } from './types.ts';
+import { Settings, WaveFormType } from './types.ts';
 import styles from './SettingsPanel.module.css';
 
 const SETTINGS = {
@@ -6,7 +6,7 @@ const SETTINGS = {
   showHertz: 'Show hertz',
   halfTones: 'Half tones',
   showStep: 'Show step',
-};
+} as const;
 
 export function SettingsPanel({
   settings,
@@ -16,8 +16,8 @@ export function SettingsPanel({
   onUpdate: (settings: Settings) => void;
 }) {
   return (
-    <div>
-      {(Object.entries(SETTINGS) as [key: keyof Settings, string][]).map(
+    <div className={styles.root}>
+      {(Object.entries(SETTINGS) as [key: keyof typeof SETTINGS, string][]).map(
         ([key, name]) => (
           <label key={key} className={styles.settingsOption}>
             <input
@@ -34,6 +34,23 @@ export function SettingsPanel({
           </label>
         ),
       )}
+      <label>
+        Waveform type:
+        <select
+          value={settings.waveFormType}
+          onChange={(event) => {
+            onUpdate({
+              ...settings,
+              waveFormType: event.target.value as WaveFormType,
+            });
+          }}
+        >
+          <option value="sine">Sine</option>
+          <option value="square">Square</option>
+          <option value="sawtooth">Sawtooth</option>
+          <option value="triangle">Triangle</option>
+        </select>
+      </label>
     </div>
   );
 }
