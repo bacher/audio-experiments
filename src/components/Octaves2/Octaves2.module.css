@@ -37,7 +37,3 @@
 .select_active {
   background: #bedfff;
 }
-
-.settingsOption {
-  user-select: none;
-}

@@ -5,10 +5,11 @@ import { useForceUpdate } from '../../hooks';
 import { usePersistMap } from '../../hooks/usePersistMap.ts';
 import { usePersist } from '../../hooks/usePersist.ts';
 
-import { KeyboardLayerType } from './types.ts';
+import { defaultSettings, KeyboardLayerType, Settings } from './types.ts';
 import { AudioResults, OscNodeEntity, setupAudio } from './audio.ts';
 import { PressedKeys, usePressedKeys } from './usePressedKeys.ts';
 import styles from './Octaves2.module.css';
+import { SettingsPanel } from './SettingsPanel.tsx';
 
 const START_FREQUENCY = 16.351875;
 
@@ -57,20 +58,6 @@ const OCTAVES = [
 
 export type KeyboardBindings = Map<number, KeyboardLayerType>;
 
-export type Settings = {
-  showNames: boolean;
-  showHertz: boolean;
-  halfTones: boolean;
-  showStep: boolean;
-};
-
-const SETTINGS = {
-  showNames: 'Show names',
-  showHertz: 'Show hertz',
-  halfTones: 'Half tones',
-  showStep: 'Show step',
-};
-
 export function Octaves2() {
   const forceUpdate = useForceUpdate();
 
@@ -79,12 +66,7 @@ export function Octaves2() {
 
   const [settings, onSettingsUpdated] = usePersist<Settings>({
     persistingKey: 'audio_settings',
-    default: () => ({
-      showNames: true,
-      showHertz: false,
-      halfTones: false,
-      showStep: false,
-    }),
+    default: () => defaultSettings,
   });
 
   const notes = settings.halfTones ? NOTES_FULL : NOTES;
@@ -216,7 +198,7 @@ export function Octaves2() {
           );
         })}
       </div>
-      <Settings
+      <SettingsPanel
         settings={settings}
         onUpdate={(updatedSettings) => {
           Object.assign(settings, updatedSettings);
@@ -224,36 +206,6 @@ export function Octaves2() {
           forceUpdate();
         }}
       />
-    </div>
-  );
-}
-
-function Settings({
-  settings,
-  onUpdate,
-}: {
-  settings: Settings;
-  onUpdate: (settings: Settings) => void;
-}) {
-  return (
-    <div>
-      {(Object.entries(SETTINGS) as [key: keyof Settings, string][]).map(
-        ([key, name]) => (
-          <label key={key} className={styles.settingsOption}>
-            <input
-              type="checkbox"
-              checked={settings[key] ?? false}
-              onChange={(event) => {
-                onUpdate({
-                  ...settings,
-                  [key]: event.target.checked,
-                });
-              }}
-            />{' '}
-            {name}
-          </label>
-        ),
-      )}
     </div>
   );
 }
