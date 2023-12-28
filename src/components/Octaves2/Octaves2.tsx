@@ -74,6 +74,10 @@ export function Octaves2() {
     default: () => defaultSettings,
   });
 
+  const activeMouseCellRef = useRef<
+    { octaveIndex: number; index: number } | undefined
+  >(undefined);
+
   const notes = settings.halfTones ? NOTES_FULL : NOTES;
 
   const audioRef = useRef<AudioResults | undefined>();
@@ -88,7 +92,13 @@ export function Octaves2() {
 
   function applyChangesLocal() {
     if (audioRef.current) {
-      applyChanges(audioRef.current, notes, pressedKeys, keyboardBindings);
+      applyChanges(
+        audioRef.current,
+        notes,
+        pressedKeys,
+        keyboardBindings,
+        activeMouseCellRef.current,
+      );
     }
   }
 
@@ -103,8 +113,35 @@ export function Octaves2() {
     }
   }
 
+  function onCellMouseEnter(octaveIndex: number, index: number): void {
+    activeMouseCellRef.current = {
+      octaveIndex,
+      index,
+    };
+
+    applyChangesLocal();
+    forceUpdate();
+  }
+
+  function onCellMouseLeave(octaveIndex: number, index: number): void {
+    if (
+      activeMouseCellRef.current &&
+      activeMouseCellRef.current.octaveIndex === octaveIndex &&
+      activeMouseCellRef.current.index === index
+    ) {
+      activeMouseCellRef.current = undefined;
+      applyChangesLocal();
+      forceUpdate();
+    }
+  }
+
+  function onClick() {
+    safeInit();
+    applyChangesLocal();
+  }
+
   return (
-    <div>
+    <div onClick={onClick}>
       <div
         className={styles.grid}
         style={
@@ -112,7 +149,6 @@ export function Octaves2() {
             '--notes-count': notes.length,
           } as CSSProperties
         }
-        onClick={safeInit}
       >
         <div>Octave name\Level</div>
         {notes.map(({ name, en }, index) => (
@@ -157,12 +193,23 @@ export function Octaves2() {
                     pressedKeys.get(keyboardLayerType)?.has(index) ?? false;
                 }
 
+                if (
+                  !isActive &&
+                  activeMouseCellRef.current &&
+                  activeMouseCellRef.current.octaveIndex === octaveIndex &&
+                  activeMouseCellRef.current.index === index
+                ) {
+                  isActive = true;
+                }
+
                 return (
                   <div
                     key={index}
-                    className={cn({
+                    className={cn(styles.cell, {
                       [styles.cell_active]: isActive,
                     })}
+                    onMouseEnter={() => onCellMouseEnter(octaveIndex, index)}
+                    onMouseLeave={() => onCellMouseLeave(octaveIndex, index)}
                   >
                     {settings.showNames && (
                       <>
@@ -170,21 +217,20 @@ export function Octaves2() {
                         {octaveIndex}
                       </>
                     )}
-
                     {settings.showHertz && (
                       <>
                         {' '}
                         {frequency
                           .toFixed(frequency < 500 ? 1 : 0)
                           .replace(/\.0$/, '')}
-                        {plus && (
-                          <>
-                            {' '}
-                            <span className={styles.step}>
-                              (+{plus.toFixed(1)}%)
-                            </span>
-                          </>
-                        )}
+                      </>
+                    )}
+                    {settings.showStep && plus && (
+                      <>
+                        {' '}
+                        <span className={styles.step}>
+                          (+{plus.toFixed(1)}%)
+                        </span>
                       </>
                     )}
                   </div>
@@ -268,6 +314,7 @@ function applyChanges(
   notes: Note[],
   pressedKeys: PressedKeys,
   keyboardBindings: KeyboardBindings,
+  activeCell: { octaveIndex: number; index: number } | undefined,
 ) {
   const activeFrequencies = new Set<number>();
 
@@ -286,6 +333,13 @@ function applyChanges(
         }
       }
     }
+  }
+
+  if (activeCell) {
+    const levelStart = START_FREQUENCY * 2 ** activeCell.octaveIndex;
+    const note = notes[activeCell.index];
+    const frequency = levelStart * note.level;
+    activeFrequencies.add(frequency);
   }
 
   syncOscNodes(oscNodes, activeFrequencies);
@@ -327,8 +381,6 @@ function syncOscNodes(
         );
         break;
       }
-
-      console.log('SET FREQ =', frequency);
 
       node.frequency = frequency;
       node.osc.frequency.value = frequency;

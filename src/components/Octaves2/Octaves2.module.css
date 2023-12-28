@@ -26,6 +26,10 @@
   color: #6c6c6c;
 }
 
+.cell {
+  user-select: none;
+}
+
 .cell_active {
   background: #6ab9ff;
 }
