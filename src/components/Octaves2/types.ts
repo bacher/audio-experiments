@@ -11,6 +11,7 @@ export type Settings = {
   showHertz: boolean;
   halfTones: boolean;
   showStep: boolean;
+  showKey: boolean;
   waveFormType: WaveFormType;
 };
 
@@ -19,6 +20,7 @@ export const defaultSettings: Settings = {
   showHertz: false,
   halfTones: false,
   showStep: false,
+  showKey: true,
   waveFormType: 'sine',
 };
 

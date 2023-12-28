@@ -41,3 +41,8 @@
 .select_active {
   background: #bedfff;
 }
+
+.hotkey {
+  margin-left: 4px;
+  color: #445db0;
+}

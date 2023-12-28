@@ -6,6 +6,7 @@ const SETTINGS = {
   showHertz: 'Show hertz',
   halfTones: 'Half tones',
   showStep: 'Show step',
+  showKey: 'Show key',
 } as const;
 
 export function SettingsPanel({

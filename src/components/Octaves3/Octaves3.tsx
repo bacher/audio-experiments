@@ -12,7 +12,11 @@ import {
   volumeWaveFormMapper,
 } from './types.ts';
 import { AudioResults, OscNodeEntity, setupAudio } from './audio.ts';
-import { PressedKeys, usePressedKeys } from './usePressedKeys.ts';
+import {
+  KEYBOARD_ALIASES,
+  PressedKeys,
+  usePressedKeys,
+} from './usePressedKeys.ts';
 import styles from './Octaves3.module.css';
 import { SettingsPanel } from './SettingsPanel.tsx';
 
@@ -186,11 +190,17 @@ export function Octaves3() {
                 }
 
                 let isActive = false;
+                let hotkey: string | undefined;
 
                 const keyboardLayerType = keyboardBindings.get(octaveIndex);
                 if (keyboardLayerType) {
                   isActive =
                     pressedKeys.get(keyboardLayerType)?.has(index) ?? false;
+
+                  if (settings.showKey) {
+                    hotkey =
+                      KEYBOARD_ALIASES.get(keyboardLayerType)!.keys[index];
+                  }
                 }
 
                 if (
@@ -232,6 +242,9 @@ export function Octaves3() {
                           (+{plus.toFixed(1)}%)
                         </span>
                       </>
+                    )}
+                    {hotkey && (
+                      <span className={styles.hotkey}>[{hotkey}]</span>
                     )}
                   </div>
                 );

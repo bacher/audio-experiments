@@ -6,24 +6,47 @@ function transformLettersIntoCodes(letters: string): string[] {
   return letters.split('').map((letter) => `Key${letter}`);
 }
 
-const KEYBOARD_ALIASES = new Map<KeyboardLayerType, string[]>([
+type KeyboardAliases = {
+  codes: string[];
+  keys: string[];
+};
+
+export const KEYBOARD_ALIASES = new Map<KeyboardLayerType, KeyboardAliases>([
   [
     KeyboardLayerType.QWE,
-    [...transformLettersIntoCodes('QWERTYUIOP'), 'BracketLeft', 'BracketRight'],
+    {
+      codes: [
+        ...transformLettersIntoCodes('QWERTYUIOP'),
+        'BracketLeft',
+        'BracketRight',
+      ],
+      keys: [...'QWERTYUIOP[]'.split('')],
+    },
   ],
   [
     KeyboardLayerType.ASD,
-    [...transformLettersIntoCodes('ASDFGHJKL'), 'Semicolon', 'Quote', 'Enter'],
+    {
+      codes: [
+        ...transformLettersIntoCodes('ASDFGHJKL'),
+        'Semicolon',
+        'Quote',
+        'Enter',
+      ],
+      keys: [..."ASDFGHJKL;'".split(''), 'Enter'],
+    },
   ],
   [
     KeyboardLayerType.ZXC,
-    [
-      ...transformLettersIntoCodes('ZXCVBNM'),
-      'Comma',
-      'Period',
-      'Slash',
-      'ShiftRight',
-    ],
+    {
+      codes: [
+        ...transformLettersIntoCodes('ZXCVBNM'),
+        'Comma',
+        'Period',
+        'Slash',
+        'ShiftRight',
+      ],
+      keys: [...'ZXCVBNM,./'.split(''), 'Shift'],
+    },
   ],
 ]);
 
@@ -48,8 +71,8 @@ export function usePressedKeys({
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      for (const [keyboard, keys] of KEYBOARD_ALIASES) {
-        const index = keys.indexOf(event.code);
+      for (const [keyboard, { codes }] of KEYBOARD_ALIASES) {
+        const index = codes.indexOf(event.code);
         if (index !== -1) {
           pressedKeys.get(keyboard)!.add(index);
           onChangeRef.current();
@@ -59,8 +82,8 @@ export function usePressedKeys({
     }
 
     function onKeyUp(event: KeyboardEvent) {
-      for (const [keyboard, keys] of KEYBOARD_ALIASES) {
-        const index = keys.indexOf(event.code);
+      for (const [keyboard, { codes }] of KEYBOARD_ALIASES) {
+        const index = codes.indexOf(event.code);
         if (index !== -1) {
           pressedKeys.get(keyboard)!.delete(index);
           onChangeRef.current();
