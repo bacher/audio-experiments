@@ -8,6 +8,7 @@ import { Harmonics4 } from '../Harmonics4';
 import { Harmonics5 } from '../Harmonics5';
 import { Octaves } from '../Octaves';
 import { Octaves2 } from '../Octaves2';
+import { Octaves3 } from '../Octaves3';
 
 enum AppRoute {
   MENU = '/',
@@ -19,6 +20,7 @@ enum AppRoute {
   HARMONICS_5 = '/harmonics5',
   OCTAVES = '/octaves',
   OCTAVES_2 = '/octaves2',
+  OCTAVES_3 = '/octaves3',
 }
 
 function Home() {
@@ -50,6 +52,9 @@ function Home() {
         <li>
           <Link to={AppRoute.OCTAVES_2}>Octaves 2</Link>
         </li>
+        <li>
+          <Link to={AppRoute.OCTAVES_3}>Octaves 3</Link>
+        </li>
       </ul>
     </div>
   );
@@ -67,6 +72,7 @@ export function App() {
       <Route path={AppRoute.HARMONICS_5} element={<Harmonics5 />} />
       <Route path={AppRoute.OCTAVES} element={<Octaves />} />
       <Route path={AppRoute.OCTAVES_2} element={<Octaves2 />} />
+      <Route path={AppRoute.OCTAVES_3} element={<Octaves3 />} />
     </Routes>
   );
 }

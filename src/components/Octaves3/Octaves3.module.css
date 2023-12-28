@@ -1,0 +1,43 @@
+.grid {
+  --notes-count: 0;
+
+  display: grid;
+  grid-template-columns: min-content repeat(var(--notes-count), 1fr) min-content;
+  padding: 8px;
+
+  & > div {
+    display: flex;
+    align-items: center;
+  }
+}
+
+.columnName {
+  white-space: nowrap;
+}
+
+.octaveName {
+  white-space: nowrap;
+  padding: 4px 4px 4px 0;
+  margin: 0 4px 0 0;
+}
+
+.step {
+  font-size: 11px;
+  color: #6c6c6c;
+}
+
+.cell {
+  user-select: none;
+}
+
+.cell_active {
+  background: #6ab9ff;
+}
+
+.highlight {
+  background: lightgreen;
+}
+
+.select_active {
+  background: #bedfff;
+}
