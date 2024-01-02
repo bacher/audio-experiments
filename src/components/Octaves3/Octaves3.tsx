@@ -4,6 +4,7 @@ import cn from 'classnames';
 import { useForceUpdate } from '../../hooks';
 import { usePersistMap } from '../../hooks/usePersistMap.ts';
 import { usePersist } from '../../hooks/usePersist.ts';
+import { track } from './track.ts';
 
 import {
   defaultSettings,
@@ -19,6 +20,7 @@ import {
 } from './usePressedKeys.ts';
 import styles from './Octaves3.module.css';
 import { SettingsPanel } from './SettingsPanel.tsx';
+import { timeout } from '../../utils/timeout.ts';
 
 const START_FREQUENCY = 16.351875;
 
@@ -37,6 +39,8 @@ const NOTES: Note[] = [
   { name: 'Ля', en: 'A', level: 1.6817643236631885 },
   { name: 'Си', en: 'B', level: 1.8877040094790354 },
 ];
+
+const NOTES_ENG = ['do', 're', 'mi', 'fa', 'so', 'la', 'si'];
 
 const NOTES_FULL: Note[] = [
   { name: 'До', en: 'C', level: 1 },
@@ -65,10 +69,14 @@ const OCTAVES = [
   'Пятая октава',
 ];
 
+const TICK_TIME = 100;
+
 export type KeyboardBindings = Map<number, KeyboardLayerType>;
 
 export function Octaves3() {
   const forceUpdate = useForceUpdate();
+
+  const forcedFrequenciesRef = useRef<Set<number>>(new Set());
 
   const [keyboardBindings, onKeyboardBindingsUpdated] =
     usePersistMap<KeyboardBindings>('audio_keyboard_bindings');
@@ -102,6 +110,7 @@ export function Octaves3() {
         pressedKeys,
         keyboardBindings,
         activeMouseCellRef.current,
+        forcedFrequenciesRef.current,
       );
     }
   }
@@ -114,7 +123,49 @@ export function Octaves3() {
         waveFormType,
         volume: volumeWaveFormMapper[waveFormType],
       });
+
+      void playTrack();
     }
+  }
+
+  async function playTrack() {
+    const set = forcedFrequenciesRef.current;
+
+    console.log('START');
+
+    for (const point of track) {
+      const note = point.substring(0, 2);
+      const isUpper = point.includes('^');
+      const isLong = point.includes('~');
+
+      const noteIndex = NOTES_ENG.indexOf(note);
+
+      const { level } = NOTES[noteIndex];
+
+      const baseOctave = 4;
+      const octave = isUpper ? baseOctave + 1 : baseOctave;
+
+      const start = START_FREQUENCY * 2 ** octave;
+      const frequency = start * level;
+
+      set.clear();
+      set.add(frequency);
+
+      console.log(point.padEnd(4, ' '), 'FREQ =', frequency);
+
+      applyChangesLocal();
+      forceUpdate();
+
+      await timeout(isLong ? 3 * TICK_TIME : TICK_TIME);
+
+      set.clear();
+      applyChangesLocal();
+      forceUpdate();
+
+      await timeout(TICK_TIME);
+    }
+
+    console.log('END');
   }
 
   function onCellMouseEnter(octaveIndex: number, index: number): void {
@@ -209,6 +260,10 @@ export function Octaves3() {
                   activeMouseCellRef.current.octaveIndex === octaveIndex &&
                   activeMouseCellRef.current.index === index
                 ) {
+                  isActive = true;
+                }
+
+                if (!isActive && forcedFrequenciesRef.current.has(frequency)) {
                   isActive = true;
                 }
 
@@ -328,8 +383,9 @@ function applyChanges(
   pressedKeys: PressedKeys,
   keyboardBindings: KeyboardBindings,
   activeCell: { octaveIndex: number; index: number } | undefined,
+  forcedFrequencies: Set<number> | undefined,
 ) {
-  const activeFrequencies = new Set<number>();
+  const activeFrequencies = new Set<number>(forcedFrequencies);
 
   for (const [octaveIndex, keyboardLayerType] of keyboardBindings) {
     const layoutKeys = pressedKeys.get(keyboardLayerType);
