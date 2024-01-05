@@ -1,0 +1,46 @@
+.root {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+}
+
+.leftPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.topPanel {
+  display: flex;
+  gap: 8px;
+}
+
+.canvas {
+  align-self: start;
+  border: 1px solid #000;
+}
+
+.harmonics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+}
+
+.ranges {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  border: 1px solid #666;
+
+  &:not(:last-child) {
+    border-right: none;
+  }
+}
+
+.rangeInput {
+  /*noinspection CssInvalidPropertyValue*/
+  appearance: slider-vertical;
+  width: 8px;
+  height: 125px;
+  padding: 0 5px;
+}
