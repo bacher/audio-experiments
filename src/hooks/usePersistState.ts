@@ -8,7 +8,7 @@ type Params<T> = {
   deserialize?: (raw: unknown) => T;
 };
 
-export function usePersist2<T>({
+export function usePersistState<T>({
   persistingKey,
   default: getDefault,
   serialize = identity,

@@ -9,7 +9,7 @@ import {
   persistHarmonicsToLocalStorage,
 } from './persist.ts';
 import { processHarmonics } from './processing.ts';
-import { FourierGraph } from './FourierGraph.tsx';
+import { FourierGraph } from './FourierGraph';
 
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 250;
