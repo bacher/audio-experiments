@@ -7,10 +7,10 @@ export function signalToRadial({
   stepOrder: number;
   discretization: number;
 }): (number | undefined)[] {
-  const values: (number | undefined)[] = Array.from(
-    { length: discretization },
-    () => undefined,
-  );
+  const valuesData = Array.from({ length: discretization }, () => ({
+    sum: 0,
+    count: 0,
+  }));
 
   const cycle = 1 - stepOrder;
 
@@ -21,14 +21,13 @@ export function signalToRadial({
 
     const signalValue = lookup(signal, i);
 
-    const index = Math.floor(placeOnCycle * values.length);
+    const index = Math.floor(placeOnCycle * valuesData.length);
 
-    if (values[index] === undefined) {
-      values[index] = 0;
-    }
-
-    values[index]! += signalValue;
+    valuesData[index].sum += signalValue;
+    valuesData[index].count += 1;
   }
+
+  const values = processArray(valuesData);
 
   normalizeArray(values);
 
@@ -59,6 +58,26 @@ function lookup(values: number[], index: number): number {
   }
 
   return out;
+}
+
+function processArray(
+  valuesData: { sum: number; count: number }[],
+): (number | undefined)[] {
+  const values: (number | undefined)[] = Array.from({
+    length: valuesData.length,
+  });
+
+  for (let i = 0; i < valuesData.length; i += 1) {
+    const { sum, count } = valuesData[i];
+
+    if (count === 0) {
+      values[i] = undefined;
+    } else {
+      values[i] = sum / count;
+    }
+  }
+
+  return values;
 }
 
 function normalizeArray(array: (number | undefined)[]): void {
